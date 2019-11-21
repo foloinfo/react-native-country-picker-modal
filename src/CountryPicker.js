@@ -18,7 +18,6 @@ import {
   Platform
 } from 'react-native'
 
-import Fuse from 'fuse.js'
 
 import cca2List from '../data/cca2.json'
 import { getHeightPercent } from './ratio'
@@ -196,16 +195,6 @@ export default class CountryPicker extends Component {
       keys: ['name'],
       id: 'id'
     }, this.props.filterOptions);
-    this.fuse = new Fuse(
-      countryList.reduce(
-        (acc, item) => [
-          ...acc,
-          { id: item, name: this.getCountryName(countries[item]) }
-        ],
-        []
-      ),
-      options
-    )
   }
 
   componentDidUpdate (prevProps) {
@@ -213,7 +202,8 @@ export default class CountryPicker extends Component {
     if (prevProps.countryList !== nextProps.countryList) {
       this.setState({
         cca2List: nextProps.countryList,
-        dataSource: nextProps.countryList
+        dataSource: nextProps.countryList,
+        flatListMap: nextProps.countryList.map(n => ({ key: n })),
       })
     }
   }
@@ -300,18 +290,29 @@ export default class CountryPicker extends Component {
   }
 
   handleFilterChange = value => {
-    const filteredCountries =
-      value === '' ? this.state.cca2List : this.fuse.search(value)
+    // const filteredCountries =
+    //   value === '' ? this.state.cca2List : this.fuse.search(value)
+    const filteredCountries = this.state.cca2List.filter((country) => {
+      return country.name.jpn.indexOf(value) >= 0 && country
+    })
     this._flatList.scrollToOffset({ offset: 0 });
 
-    this.setState({
-      filter: value,
-      dataSource: filteredCountries,
-      flatListMap: filteredCountries.map(n => ({ key: n }))
-    })
+    if(filteredCountries){
+      this.setState({
+        filter: value,
+        dataSource: filteredCountries,
+        flatListMap: filteredCountries.map(n => ({ key: n }))
+      })
+    }else{
+      this.setState({
+        filter: value,
+        dataSource: this.props.countryList,
+        flatListMap: this.props.countryList.map(n => ({ key: n }))
+      })
+    }
   }
 
-  renderCountry(cca2, index) {
+  renderCountry({cca2, index}) {
     const country = countries[cca2];
 
     return (
@@ -443,9 +444,11 @@ export default class CountryPicker extends Component {
                   data={this.state.flatListMap}
                   ref={flatList => (this._flatList = flatList)}
                   initialNumToRender={30}
-onScrollToIndexFailed={()=>{}}
-                  renderItem={country => this.renderCountry(country.item.key)}
-                  keyExtractor={(item) => item.key}
+                  onScrollToIndexFailed={()=>{}}
+                  renderItem={country => {
+                    return this.renderCountry(country.item.key)
+                  }}
+                  keyExtractor={(item) => item.key.cca2}
                   getItemLayout={(data, index) => (
                     { length: this.itemHeight, offset: this.itemHeight * index, index }
                   )}
