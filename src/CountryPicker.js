@@ -208,8 +208,9 @@ export default class CountryPicker extends Component {
     )
   }
 
-componentDidUpdate (prevProps) {
-    if (prevProps.countryList !== this.props.countryList) {
+  componentDidUpdate (prevProps) {
+    const nextProps = this.props
+    if (prevProps.countryList !== nextProps.countryList) {
       this.setState({
         cca2List: nextProps.countryList,
         dataSource: nextProps.countryList
